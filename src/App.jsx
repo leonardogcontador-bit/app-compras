@@ -564,3 +564,5 @@ export default function MeuMercadoApp() {
     </div>
   );
 }
+
+
