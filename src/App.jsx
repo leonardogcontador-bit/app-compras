@@ -562,7 +562,4 @@ export default function MeuMercadoApp() {
         Florianópolis/Brasil
       </p>
     </div>
-  );
-}
-
-
+    
