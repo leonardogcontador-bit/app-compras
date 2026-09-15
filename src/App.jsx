@@ -1,19 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, TrendingDown, ShoppingCart, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShoppingCart, Trash2, X } from "lucide-react";
 
 const SUPABASE_URL = "https://mgfzsafdfmcgyqlsomez.supabase.co";
 const SUPABASE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nZnpzYWZkZm1jZ3lxbHNvbWV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNjcwODEsImV4cCI6MjEwMDc0MzA4MX0.5_1rl0gr3NI54tRycs1NYh9vCpoJPmnVONFVsV6shz4";
-
-const DIAS = [
-  "Segunda",
-  "Terça",
-  "Quarta",
-  "Quinta",
-  "Sexta",
-  "Sábado",
-  "Domingo",
-];
 
 const headers = {
   apikey: SUPABASE_KEY,
@@ -22,67 +12,231 @@ const headers = {
   Prefer: "return=representation",
 };
 
-export default function AppCompras() {
-  const [precos, setPrecos] = useState([]);
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+const PAPER = "#FAFAF8";
+const INK = "#1A1A1A";
+const INK_SOFT = "#5A5A5A";
+const LINE = "#E2E0DA";
+const STAMP_GREEN = "#009246";
+const STAMP_RED = "#CE2B37";
+const STAMP_BLUE = "#0055A4";
+const CARD = "#FFFFFF";
+
+const TODAY_VIRTUAL_ID = "hoje-virtual";
+
+function todayISO() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function weekdayOf(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return WEEKDAYS[d.getDay()];
+}
+
+function shortDate(dateStr) {
+  const [, m, day] = dateStr.split("-");
+  return `${day}/${m}`;
+}
+
+function formatPrice(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  if (Number.isNaN(n)) return null;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function DoodleIcon({ type, color = "#5B5F4E", size = 34 }) {
+  const common = {
+    viewBox: "0 0 40 40",
+    width: size,
+    height: size,
+    fill: "none",
+    stroke: color,
+    strokeWidth: 1.4,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+  switch (type) {
+    case "cenoura":
+      return (
+        <svg {...common}>
+          <path d="M14 8 Q20 6 17 12" />
+          <path d="M18 7 Q22 5 20 11" />
+          <path d="M21 9 Q24 8 22 13" />
+          <path d="M16 12 Q26 14 24 24 Q22 34 15 32 Q10 30 12 20 Q13 14 16 12 Z" />
+        </svg>
+      );
+    case "pao":
+      return (
+        <svg {...common}>
+          <path d="M6 22 Q6 12 20 12 Q34 12 34 22 Q34 30 20 30 Q6 30 6 22 Z" />
+          <path d="M13 15 Q13 20 13 26" />
+          <path d="M20 14 Q20 20 20 27" />
+          <path d="M27 15 Q27 20 27 26" />
+        </svg>
+      );
+    case "tomate":
+      return (
+        <svg {...common}>
+          <path d="M20 12 C28 12 32 18 32 24 C32 30 26 33 20 33 C14 33 8 30 8 24 C8 18 12 12 20 12 Z" />
+          <path d="M17 11 Q20 7 23 11" />
+          <path d="M20 8 L20 11" />
+        </svg>
+      );
+    case "banana":
+      return (
+        <svg {...common}>
+          <path d="M9 12 Q8 24 16 30 Q26 34 33 26" />
+          <path d="M33 26 Q35 28 32 30 Q26 36 15 32 Q6 26 8 12" />
+        </svg>
+      );
+    case "maca":
+      return (
+        <svg {...common}>
+          <path d="M20 14 C13 12 8 17 8 23 C8 29 13 33 18 33 C19 33 19.5 32.5 20 32.5 C20.5 32.5 21 33 22 33 C27 33 32 29 32 23 C32 17 27 12 20 14 Z" />
+          <path d="M20 14 Q20 9 24 7" />
+          <path d="M20 10 Q17 8 15 10" />
+        </svg>
+      );
+    case "ovos":
+      return (
+        <svg {...common}>
+          <ellipse cx="14" cy="24" rx="6" ry="8" />
+          <ellipse cx="25" cy="22" rx="6.5" ry="8.5" />
+        </svg>
+      );
+    case "sacola":
+      return (
+        <svg {...common}>
+          <path d="M10 15 L30 15 L28 34 L12 34 Z" />
+          <path d="M15 15 Q15 8 20 8 Q25 8 25 15" />
+          <circle cx="20" cy="23" r="1.6" fill={color} stroke="none" />
+        </svg>
+      );
+    case "uva":
+      return (
+        <svg {...common}>
+          <path d="M20 8 L20 13" />
+          <circle cx="16" cy="16" r="4" />
+          <circle cx="24" cy="16" r="4" />
+          <circle cx="13" cy="23" r="4" />
+          <circle cx="20" cy="23" r="4" />
+          <circle cx="27" cy="23" r="4" />
+          <circle cx="16" cy="30" r="4" />
+          <circle cx="24" cy="30" r="4" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+const DOODLE_ORDER = ["cenoura", "pao", "tomate", "banana", "maca", "ovos", "uva", "sacola"];
+const DOODLE_COLORS = [STAMP_GREEN, STAMP_BLUE, STAMP_RED, INK_SOFT];
+
+function DoodleStrip({ flip = false }) {
+  return (
+    <div
+      className="flex items-center justify-around px-2"
+      style={{ transform: flip ? "scaleX(-1)" : "none" }}
+    >
+      {DOODLE_ORDER.map((type, i) => (
+        <div key={type} style={{ transform: flip ? "scaleX(-1)" : "none" }}>
+          <DoodleIcon type={type} color={DOODLE_COLORS[i % DOODLE_COLORS.length]} size={28} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function MeuMercadoApp() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
-  const [salvando, setSalvando] = useState(false);
+  const [produtos, setProdutos] = useState([]);
+  const [precos, setPrecos] = useState([]);
+  const [newItemName, setNewItemName] = useState("");
+  const [editingCell, setEditingCell] = useState(null);
+  const [cellDraft, setCellDraft] = useState("");
 
-  const [item, setItem] = useState("");
-  const [dia, setDia] = useState(DIAS[0]);
-  const [preco, setPreco] = useState("");
-
-  const carregar = useCallback(async () => {
+  const carregar = async () => {
     setLoading(true);
     setErro("");
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/precos?select=*&order=created_at.desc`,
-        { headers }
-      );
-      if (!res.ok) throw new Error("Falha ao carregar dados");
-      const data = await res.json();
-      setPrecos(data);
+      const [resProdutos, resPrecos] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/produtos?select=*&order=created_at.asc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/precos?select=*&order=dia_data.asc`, { headers }),
+      ]);
+      if (!resProdutos.ok) {
+        const txt = await resProdutos.text();
+        throw new Error(`produtos ${resProdutos.status}: ${txt}`);
+      }
+      if (!resPrecos.ok) {
+        const txt = await resPrecos.text();
+        throw new Error(`precos ${resPrecos.status}: ${txt}`);
+      }
+      setProdutos(await resProdutos.json());
+      setPrecos((await resPrecos.json()).filter((p) => p.produto_id && p.dia_data));
     } catch (e) {
-      setErro("Não foi possível carregar os preços. Puxe para atualizar.");
+      setErro("Erro ao carregar: " + (e?.message || "desconhecido"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     carregar();
-  }, [carregar]);
+  }, []);
 
-  const adicionar = async () => {
-    if (!item.trim() || !preco) return;
-    setSalvando(true);
+  async function addItem() {
+    const nome = newItemName.trim();
+    if (!nome) return;
     setErro("");
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/precos`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/produtos`, {
         method: "POST",
         headers,
-        body: JSON.stringify([
-          {
-            item: item.trim(),
-            dia_semana: dia,
-            preco: parseFloat(preco.replace(",", ".")),
-          },
-        ]),
+        body: JSON.stringify([{ nome }]),
       });
-      if (!res.ok) throw new Error("Falha ao salvar");
+      if (!res.ok) throw new Error();
       const [novo] = await res.json();
-      setPrecos((prev) => [novo, ...prev]);
-      setItem("");
-      setPreco("");
+      setProdutos((prev) => [...prev, novo]);
+      setNewItemName("");
     } catch (e) {
-      setErro("Não foi possível salvar. Tente novamente.");
-    } finally {
-      setSalvando(false);
+      setErro("Não foi possível salvar o produto. Tente novamente.");
     }
-  };
+  }
 
-  const remover = async (id) => {
+  async function deleteItem(id) {
+    setErro("");
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/produtos?id=eq.${id}`, {
+        method: "DELETE",
+        headers,
+      });
+      setProdutos((prev) => prev.filter((p) => p.id !== id));
+      setPrecos((prev) => prev.filter((p) => p.produto_id !== id));
+    } catch (e) {
+      setErro("Não foi possível remover o produto.");
+    }
+  }
+
+  async function deleteDia(diaData) {
+    setErro("");
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/precos?dia_data=eq.${diaData}`, {
+        method: "DELETE",
+        headers,
+      });
+      setPrecos((prev) => prev.filter((p) => p.dia_data !== diaData));
+    } catch (e) {
+      setErro("Não foi possível remover essa coluna.");
+    }
+  }
+
+  async function deletePreco(id) {
+    setErro("");
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/precos?id=eq.${id}`, {
         method: "DELETE",
@@ -90,277 +244,323 @@ export default function AppCompras() {
       });
       setPrecos((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
-      setErro("Não foi possível remover o registro.");
+      setErro("Não foi possível remover o preço.");
     }
-  };
+  }
 
-  const itensAgrupados = precos.reduce((acc, p) => {
-    if (!acc[p.item]) acc[p.item] = [];
-    acc[p.item].push(p);
-    return acc;
-  }, {});
+  function openCell(produtoId, diaData) {
+    setEditingCell(`${produtoId}:${diaData}`);
+    const atual = precos.find((p) => p.produto_id === produtoId && p.dia_data === diaData);
+    setCellDraft(atual ? String(atual.preco) : "");
+  }
 
-  const melhorDia = (registros) => {
-    const porDia = {};
-    registros.forEach((r) => {
-      if (!porDia[r.dia_semana]) porDia[r.dia_semana] = [];
-      porDia[r.dia_semana].push(r.preco);
-    });
-    let melhor = null;
-    let menorMedia = Infinity;
-    Object.entries(porDia).forEach(([d, precosArr]) => {
-      const media = precosArr.reduce((a, b) => a + b, 0) / precosArr.length;
-      if (media < menorMedia) {
-        menorMedia = media;
-        melhor = d;
+  async function commitCell(produtoId, diaData) {
+    const n = parseFloat(cellDraft.replace(",", "."));
+    const vazio = cellDraft.trim() === "" || Number.isNaN(n);
+    setErro("");
+
+    if (vazio) {
+      setEditingCell(null);
+      setCellDraft("");
+      return;
+    }
+
+    const diaReal = diaData === TODAY_VIRTUAL_ID ? todayISO() : diaData;
+    const existente = precos.find(
+      (p) => p.produto_id === produtoId && p.dia_data === diaReal
+    );
+
+    try {
+      if (existente) {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/precos?id=eq.${existente.id}`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ preco: n }),
+        });
+        if (!res.ok) throw new Error();
+        const [atualizado] = await res.json();
+        setPrecos((prev) => prev.map((p) => (p.id === existente.id ? atualizado : p)));
+      } else {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/precos`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify([{ produto_id: produtoId, dia_data: diaReal, preco: n }]),
+        });
+        if (!res.ok) throw new Error();
+        const [novo] = await res.json();
+        setPrecos((prev) => [...prev, novo]);
       }
-    });
-    return { dia: melhor, preco: menorMedia };
-  };
+    } catch (e) {
+      setErro("Não foi possível salvar o preço. Tente novamente.");
+    }
+    setEditingCell(null);
+    setCellDraft("");
+  }
+
+  function bestFor(produtoId) {
+    const doItem = precos.filter((p) => p.produto_id === produtoId);
+    if (doItem.length === 0) return null;
+    let best = doItem[0];
+    for (const p of doItem) {
+      if (p.preco < best.preco) best = p;
+    }
+    return { price: best.preco, weekday: weekdayOf(best.dia_data) };
+  }
+
+  if (loading) {
+    return (
+      <div
+        style={{ background: PAPER, color: INK }}
+        className="min-h-screen flex items-center justify-center font-mono text-sm"
+      >
+        carregando...
+      </div>
+    );
+  }
+
+  const diasUnicos = [...new Set(precos.map((p) => p.dia_data))].sort();
+  const todayIsOpen = diasUnicos.includes(todayISO());
+  const colunas = todayIsOpen
+    ? diasUnicos.map((date) => ({ id: date, date, virtual: false }))
+    : [...diasUnicos.map((date) => ({ id: date, date, virtual: false })), { id: TODAY_VIRTUAL_ID, date: todayISO(), virtual: true }];
 
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
-        <div style={styles.headerRow}>
-          <ShoppingCart size={28} color="#1F5B5B" />
-          <h1 style={styles.title}>Preço da Feira</h1>
+    <div style={{ background: PAPER, color: INK }} className="min-h-screen flex flex-col relative">
+      <style>{`
+        @keyframes shimmerGold {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes borderGlow {
+          0%, 100% { box-shadow: 0 0 3px rgba(212,175,55,0.35), inset 0 0 0 rgba(0,0,0,0); }
+          50% { box-shadow: 0 0 10px rgba(212,175,55,0.9), inset 0 0 4px rgba(212,175,55,0.25); }
+        }
+        .produto-input {
+          border: 1.5px solid #D4AF37 !important;
+          animation: borderGlow 2.4s ease-in-out infinite;
+        }
+        .produto-input::placeholder {
+          background: linear-gradient(90deg, #B8860B, #FFE9A8, #D4AF37, #FFF3C4, #B8860B);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          -webkit-text-fill-color: transparent;
+          animation: shimmerGold 3.2s linear infinite;
+          font-weight: 600;
+          opacity: 1;
+        }
+      `}</style>
+      <svg
+        viewBox="0 0 30 21"
+        width="26"
+        height="18"
+        style={{ position: "absolute", top: 6, right: 6, zIndex: 10 }}
+      >
+        <rect x="0" y="0" width="30" height="21" fill="#F2C230" />
+        <polygon points="15,2 28,10.5 15,19 2,10.5" fill="#F2C230" stroke="#F2C230" />
+        <circle cx="15" cy="10.5" r="4.2" fill="#F2C230" stroke="#FAFAF8" strokeWidth="0.4" />
+      </svg>
+      <header style={{ borderBottom: `2px dashed ${LINE}` }} className="pt-4 pb-4">
+        <div className="pb-2">
+          <DoodleStrip />
         </div>
-        <p style={styles.subtitle}>
-          Anote o preço de cada item e descubra o melhor dia pra comprar.
+        <div className="flex items-center justify-between gap-2 px-4">
+          <h1 style={{ fontFamily: "Georgia, serif", letterSpacing: "-0.02em" }} className="text-2xl font-bold">
+            Meu Mercado
+          </h1>
+        </div>
+        <p style={{ color: INK, fontFamily: "Georgia, serif" }} className="text-sm mt-1 font-semibold px-4">
+          Itens que preciso comprar
+        </p>
+        <p style={{ color: INK_SOFT }} className="text-xs mt-1 font-mono px-4">
+          {produtos.length} {produtos.length === 1 ? "item" : "itens"} · {diasUnicos.length}{" "}
+          {diasUnicos.length === 1 ? "dia registrado" : "dias registrados"}
         </p>
       </header>
 
-      <section style={styles.formCard}>
-        <label style={styles.label}>Item</label>
-        <input
-          style={styles.input}
-          placeholder="Ex: Tomate, Arroz, Leite..."
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
-        />
-
-        <div style={styles.row}>
-          <div style={{ flex: 1 }}>
-            <label style={styles.label}>Dia da compra</label>
-            <select
-              style={styles.input}
-              value={dia}
-              onChange={(e) => setDia(e.target.value)}
-            >
-              {DIAS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ width: 130 }}>
-            <label style={styles.label}>Preço (R$)</label>
-            <input
-              style={styles.input}
-              placeholder="0,00"
-              inputMode="decimal"
-              value={preco}
-              onChange={(e) => setPreco(e.target.value)}
-            />
-          </div>
+      <main className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="flex gap-2 mb-2">
+          <input
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addItem()}
+            placeholder="escreva aqui o produto/alimento"
+            style={{ background: CARD, color: INK }}
+            className="produto-input flex-1 rounded-md px-3 py-2 text-sm font-mono outline-none"
+          />
+          <button
+            onClick={addItem}
+            style={{ background: STAMP_GREEN }}
+            className="text-white rounded-md px-3 flex items-center justify-center"
+          >
+            <ShoppingCart size={18} />
+          </button>
         </div>
 
-        <button
-          style={{
-            ...styles.button,
-            opacity: !item.trim() || !preco || salvando ? 0.6 : 1,
-          }}
-          disabled={!item.trim() || !preco || salvando}
-          onClick={adicionar}
-        >
-          <Plus size={20} />
-          {salvando ? "Salvando..." : "Salvar preço"}
-        </button>
-      </section>
+        {erro && (
+          <div
+            style={{ background: "#FBE9E7", color: STAMP_RED }}
+            className="text-xs font-mono rounded-md px-3 py-2 mb-3"
+          >
+            {erro}
+          </div>
+        )}
 
-      {erro && <div style={styles.erro}>{erro}</div>}
-
-      <div style={styles.listHeader}>
-        <h2 style={styles.sectionTitle}>Seus itens</h2>
-        <button style={styles.refreshBtn} onClick={carregar} title="Atualizar">
-          <RefreshCw size={18} color="#1F5B5B" />
-        </button>
-      </div>
-
-      {loading ? (
-        <p style={styles.info}>Carregando...</p>
-      ) : Object.keys(itensAgrupados).length === 0 ? (
-        <p style={styles.info}>
-          Nenhum item ainda. Adicione o primeiro preço acima.
-        </p>
-      ) : (
-        Object.entries(itensAgrupados).map(([nomeItem, registros]) => {
-          const { dia: diaBom, preco: precoBom } = melhorDia(registros);
-          return (
-            <div key={nomeItem} style={styles.itemCard}>
-              <div style={styles.itemHeader}>
-                <span style={styles.itemNome}>{nomeItem}</span>
-                <span style={styles.badge}>
-                  <TrendingDown size={14} />
-                  Melhor dia: {diaBom} (R$ {precoBom.toFixed(2)})
-                </span>
-              </div>
-              {registros
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                .map((r) => (
-                  <div key={r.id} style={styles.registro}>
-                    <span style={styles.registroDia}>{r.dia_semana}</span>
-                    <span style={styles.registroPreco}>
-                      R$ {Number(r.preco).toFixed(2)}
-                    </span>
-                    <button
-                      style={styles.deleteBtn}
-                      onClick={() => remover(r.id)}
-                      aria-label="Remover"
+        {produtos.length === 0 ? (
+          <p style={{ color: INK_SOFT }} className="text-sm font-mono text-center mt-10">
+            adicione seus itens acima
+            <br />
+            para começar o caderno.
+          </p>
+        ) : (
+          <div style={{ border: `1px solid ${LINE}` }} className="rounded-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="border-collapse" style={{ minWidth: "100%" }}>
+                <thead>
+                  <tr>
+                    <th
+                      style={{
+                        background: CARD,
+                        borderBottom: `1.5px solid ${LINE}`,
+                        position: "sticky",
+                        left: 0,
+                        zIndex: 2,
+                      }}
+                      className="text-left text-xs font-mono px-3 py-2 min-w-[110px]"
                     >
-                      <Trash2 size={16} color="#B0453D" />
-                    </button>
-                  </div>
-                ))}
+                      item
+                    </th>
+                    {colunas.map((d) => (
+                      <th
+                        key={d.id}
+                        style={{
+                          background: d.virtual ? "#EAF2FB" : CARD,
+                          borderBottom: `1.5px solid ${d.virtual ? STAMP_BLUE : LINE}`,
+                          borderLeft: `1px solid ${LINE}`,
+                        }}
+                        className="text-xs font-mono px-2 py-2 min-w-[72px] relative"
+                      >
+                        <div className="flex flex-col items-center">
+                          <span style={{ color: d.virtual ? STAMP_BLUE : INK_SOFT, fontWeight: d.virtual ? 700 : 400 }}>
+                            {d.virtual ? "hoje" : weekdayOf(d.date)}
+                          </span>
+                          <span className="font-semibold">{shortDate(d.date)}</span>
+                          <span style={{ color: STAMP_GREEN, fontSize: 9, fontWeight: 700, opacity: 0.75 }}>R$</span>
+                        </div>
+                        {!d.virtual && (
+                          <button
+                            onClick={() => deleteDia(d.date)}
+                            style={{ color: INK_SOFT }}
+                            className="absolute top-0.5 right-0.5"
+                          >
+                            <X size={10} />
+                          </button>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {produtos.map((it) => {
+                    const best = bestFor(it.id);
+                    return (
+                      <tr key={it.id}>
+                        <td
+                          style={{
+                            background: PAPER,
+                            borderBottom: `1px solid ${LINE}`,
+                            position: "sticky",
+                            left: 0,
+                            zIndex: 1,
+                          }}
+                          className="px-3 py-2 align-top"
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <span className="text-sm font-medium">{it.nome}</span>
+                            <button onClick={() => deleteItem(it.id)} style={{ color: STAMP_RED }} className="shrink-0">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                          {best && (
+                            <div style={{ color: STAMP_GREEN, fontFamily: "monospace" }} className="text-[10px] mt-1">
+                              melhor: {formatPrice(best.price)} · {best.weekday}
+                            </div>
+                          )}
+                        </td>
+                        {colunas.map((d) => {
+                          const cellKey = `${it.id}:${d.id}`;
+                          const registro = d.virtual
+                            ? undefined
+                            : precos.find((p) => p.produto_id === it.id && p.dia_data === d.date);
+                          const val = registro ? registro.preco : undefined;
+                          const isBest = best && val === best.price;
+                          return (
+                            <td
+                              key={d.id}
+                              style={{ borderBottom: `1px solid ${LINE}`, borderLeft: `1px solid ${LINE}` }}
+                              className="px-1 py-2 text-center"
+                            >
+                              {editingCell === cellKey ? (
+                                <div
+                                  style={{ border: `1px solid ${STAMP_GREEN}`, background: "white" }}
+                                  className="flex items-center rounded px-1 w-16 mx-auto"
+                                >
+                                  <span style={{ color: STAMP_GREEN, fontSize: 11, fontWeight: 700 }}>R$</span>
+                                  <input
+                                    autoFocus
+                                    inputMode="decimal"
+                                    value={cellDraft}
+                                    onChange={(e) => setCellDraft(e.target.value)}
+                                    onBlur={() => commitCell(it.id, d.id)}
+                                    onKeyDown={(e) => e.key === "Enter" && commitCell(it.id, d.id)}
+                                    placeholder="0,00"
+                                    style={{ background: "transparent" }}
+                                    className="w-full rounded px-1 py-1 text-xs font-mono text-center outline-none"
+                                  />
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => openCell(it.id, d.id)}
+                                  style={{
+                                    color: isBest ? STAMP_GREEN : val != null ? INK : INK_SOFT,
+                                    fontWeight: isBest ? 700 : 400,
+                                  }}
+                                  className="w-16 text-xs font-mono py-1"
+                                >
+                                  {val != null ? formatPrice(val).replace("R$", "") : "—"}
+                                </button>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          );
-        })
-      )}
+          </div>
+        )}
+
+        <p style={{ color: INK_SOFT }} className="text-[11px] font-mono text-center mt-4">
+          toque na coluna "hoje" para registrar o preço do dia.
+          <br />
+          o melhor preço de cada item fica destacado em verde.
+        </p>
+      </main>
+
+      <div className="pt-4 pb-1 -mx-0">
+        <DoodleStrip flip />
+      </div>
+      <p style={{ color: INK_SOFT }} className="text-[10px] font-mono text-right pr-3 pb-1">
+        Arte por Claudia Gusberti
+      </p>
+      <p style={{ color: INK_SOFT }} className="text-[10px] font-mono text-right pr-3 pb-3">
+        Aplicativo idealizado e criado por Leonardo Gusberti
+        <br />
+        Florianópolis/Brasil
+      </p>
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#F7F5F0",
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    padding: "20px 16px 60px",
-    maxWidth: 480,
-    margin: "0 auto",
-  },
-  header: { marginBottom: 20 },
-  headerRow: { display: "flex", alignItems: "center", gap: 10 },
-  title: {
-    fontSize: 26,
-    fontWeight: 800,
-    color: "#1F5B5B",
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#5A5A52",
-    marginTop: 6,
-    lineHeight: 1.4,
-  },
-  formCard: {
-    background: "#FFFFFF",
-    borderRadius: 16,
-    padding: 18,
-    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#5A5A52",
-    display: "block",
-    marginBottom: 4,
-    marginTop: 10,
-  },
-  row: { display: "flex", gap: 12 },
-  input: {
-    width: "100%",
-    fontSize: 17,
-    padding: "12px 14px",
-    borderRadius: 10,
-    border: "1px solid #E0DDD3",
-    background: "#FBFAF7",
-    boxSizing: "border-box",
-    color: "#2B2B26",
-  },
-  button: {
-    marginTop: 18,
-    width: "100%",
-    fontSize: 17,
-    fontWeight: 700,
-    color: "#FFFFFF",
-    background: "#1F5B5B",
-    border: "none",
-    borderRadius: 12,
-    padding: "14px 0",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    cursor: "pointer",
-  },
-  erro: {
-    background: "#FBE9E7",
-    color: "#B0453D",
-    padding: "10px 14px",
-    borderRadius: 10,
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  listHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  sectionTitle: { fontSize: 19, fontWeight: 700, color: "#2B2B26", margin: 0 },
-  refreshBtn: {
-    background: "#FFFFFF",
-    border: "1px solid #E0DDD3",
-    borderRadius: 10,
-    padding: 8,
-    cursor: "pointer",
-    display: "flex",
-  },
-  info: { fontSize: 15, color: "#7A7A70", textAlign: "center", marginTop: 30 },
-  itemCard: {
-    background: "#FFFFFF",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-  },
-  itemHeader: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottom: "1px solid #F0EEE7",
-  },
-  itemNome: { fontSize: 18, fontWeight: 700, color: "#2B2B26" },
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#8A6416",
-    background: "#FBF1DC",
-    padding: "4px 10px",
-    borderRadius: 20,
-    width: "fit-content",
-  },
-  registro: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "8px 0",
-  },
-  registroDia: { fontSize: 15, color: "#4A4A42", flex: 1 },
-  registroPreco: { fontSize: 15, fontWeight: 700, color: "#2B2B26", marginRight: 10 },
-  deleteBtn: {
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: 4,
-  },
-};
